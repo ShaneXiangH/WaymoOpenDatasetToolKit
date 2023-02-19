@@ -58,6 +58,7 @@ class ToolKit:
         for file in os.listdir(self.training_dir):
             if file.endswith(".tfrecord"):
                 seg_list.append(file)
+        print("len(seg_list): {}".format(len(seg_list)))
         return seg_list
 
     def list_testing_segments(self):
@@ -73,13 +74,16 @@ class ToolKit:
     # Extract Camera Image
     def extract_image(self, ndx, frame):
         for index, data in enumerate(frame.images):
+            # print("index_image_c: {}".format(index))
             decodedImage = tf.io.decode_jpeg(data.image, channels=3, dct_method='INTEGER_ACCURATE')
             decodedImage = cv2.cvtColor(decodedImage.numpy(), cv2.COLOR_RGB2BGR)
             cv2.imwrite("{}/{}_{}.png".format(self.camera_images_dir, ndx, self.camera_list[data.name]), decodedImage)
 
     # Extract Camera Label
     def extract_labels(self, ndx, frame):
+        print("frame.camera_labels: {}".format(frame.camera_labels))
         for index, data in enumerate(frame.camera_labels):
+            print("index_label_c: {}".format(index))
             camera = MessageToDict(data)
             camera_name = camera["name"]
             label_file = open("{}/{}_{}.txt".format(self.camera_labels_dir, ndx, camera_name), "w")
@@ -105,9 +109,11 @@ class ToolKit:
         frame = open_dataset.Frame()
         
         for frameIdx in range_value:
+            print("frameIdx: {}".format(frameIdx))
             frame.ParseFromString(datasetAsList[frameIdx])
-            self.extract_image(frameIdx, frame)
             self.extract_labels(frameIdx, frame)
+            self.extract_image(frameIdx, frame)
+            
 
     # Function to call to extract images
     def extract_camera_images(self):
@@ -120,10 +126,12 @@ class ToolKit:
         # Convert tfrecord to a list
         datasetAsList = list(self.dataset.as_numpy_iterator())
         totalFrames = len(datasetAsList)
+        print("totalFrames: {}".format(totalFrames))
 
         threads = []
 
         for i in self.batch(range(totalFrames), 30):
+            print("i: {}".format(i))
             t = threading.Thread(target=self.threaded_camera_image_extraction, args=[datasetAsList, i])
             t.start()
             threads.append(t)
@@ -139,13 +147,13 @@ class ToolKit:
     def extract_laser(self, ndx, frame):
 
         # Extract the range images, camera projects and top pose
-        range_images, camera_projections, range_image_top_pose = frame_utils.parse_range_image_and_camera_projection(frame)
+        range_images, camera_projections, _, range_image_top_pose = frame_utils.parse_range_image_and_camera_projection(frame)
         frame.lasers.sort(key=lambda laser: laser.name)
         # Using the function provided by Waymo OD to convert range image into to point clouds to visualize and save the data
         points, cp_points = frame_utils.convert_range_image_to_point_cloud(frame, range_images, camera_projections, range_image_top_pose)
 
         # Point cloud data
-        f_p = open("{}/{}_points.data".format(self.laser_images_dir, ndx), 'wb')
+        f_p = open("{}/{}_poin".format(self.laser_images_dir, ndx), 'wb')
         pickle.dump(points, f_p)
         # Camera projects for each point cloud data
         f_cp = open("{}/{}_cp_points.data".format(self.laser_images_dir, ndx), 'wb')
@@ -180,6 +188,7 @@ class ToolKit:
         frame = open_dataset.Frame()
         
         for frameIdx in range_value:
+            # print("frameIdx_laser: {}".format(frameIdx))
             frame.ParseFromString(datasetAsList[frameIdx])
             self.extract_laser(frameIdx, frame)
             self.extract_laser_labels(frameIdx, frame)

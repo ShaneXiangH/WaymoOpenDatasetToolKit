@@ -20,7 +20,7 @@ def process_image(image, labels):
 if __name__ == "__main__":
     
     # visualize images
-    saveDir = "../data" # directory where the data was extracted
+    saveDir = "/storage/drive_1/xinhao/visualization/WaymoOpenDatasetToolKit/data/processed" # directory where the data was extracted
     imageDir = "{}/camera/images".format(saveDir)
     labelDir = "{}/camera/labels".format(saveDir)
     frameNum = 0
